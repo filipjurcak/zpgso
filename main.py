@@ -51,20 +51,9 @@ class Main:
                 [0, 0, 0, 1]
             ]
         )
-        self.original_model_matrix = scaling2 * translation * scaling1 * rotation_z
-        self.model_matrix = scaling2 * translation * scaling1 * rotation_z
-        self.translate_to_origin_matrix = Mat4([
-            [1, 0, 0, -2 * self.scale_image],
-            [0, 1, 0, -2 * self.scale_image],
-            [0, 0, 1, -2 * self.scale_image],
-            [0, 0, 0, 1]
-        ])
-        self.translate_to_center_matrix = Mat4([
-            [1, 0, 0, 2 * self.scale_image],
-            [0, 1, 0, 2 * self.scale_image],
-            [0, 0, 1, 2 * self.scale_image],
-            [0, 0, 0, 1]
-        ])
+        self.projection_matrix = scaling2 * translation * scaling1 * rotation_z
+        self.original_model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
+        self.model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
     def load_file(self):
         self.indexed_face.reset()
@@ -88,9 +77,9 @@ class Main:
                         self.draw_triangle(triangle)
 
     def draw_triangle(self, triangle: Triangle):
-        vec1 = self.model_matrix * self.indexed_face.vertices[triangle.vertex1 - 1]
-        vec2 = self.model_matrix * self.indexed_face.vertices[triangle.vertex2 - 1]
-        vec3 = self.model_matrix * self.indexed_face.vertices[triangle.vertex3 - 1]
+        vec1 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex1 - 1]
+        vec2 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex2 - 1]
+        vec3 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex3 - 1]
         line_ids = [
             self.canvas.create_line(vec1.x, vec1.y, vec2.x, vec2.y),
             self.canvas.create_line(vec1.x, vec1.y, vec3.x, vec3.y),
@@ -116,8 +105,7 @@ class Main:
         translate_y = -float(self.translate_y_entry.get())  # this is because tkinter y axis is upside down
         translate_z = float(self.translate_z_entry.get())
         translate_matrix = Mat4([[1, 0, 0, translate_x], [0, 1, 0, translate_y], [0, 0, 1, translate_z], [0, 0, 0, 1]])
-        self.model_matrix = self.translate_to_center_matrix * translate_matrix * \
-                            self.translate_to_origin_matrix * self.model_matrix
+        self.model_matrix = translate_matrix * self.model_matrix
         self.redraw()
 
     def add_rotate(self):
@@ -139,15 +127,13 @@ class Main:
             [sin(rotate_z), cos(rotate_z), 0, 0],
             [0, 0, 1, 0],
             [0, 0, 0, 1]])
-        self.model_matrix = self.translate_to_center_matrix * rotate_x_matrix * rotate_y_matrix * \
-                            rotate_z_matrix * self.translate_to_origin_matrix * self.model_matrix
+        self.model_matrix = rotate_x_matrix * rotate_y_matrix * rotate_z_matrix * self.model_matrix
         self.redraw()
 
     def add_scale(self):
         scale = float(self.scale_entry.get())
         scaling_matrix = Mat4([[scale, 0, 0, 0], [0, scale, 0, 0], [0, 0, scale, 0], [0, 0, 0, 1]])
-        self.model_matrix = self.translate_to_center_matrix * scaling_matrix * \
-                            self.translate_to_origin_matrix * self.model_matrix
+        self.model_matrix = scaling_matrix * self.model_matrix
         self.redraw()
 
     def start(self):
