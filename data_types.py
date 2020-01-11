@@ -1,3 +1,6 @@
+from math import sqrt
+
+
 class Mat:
     @staticmethod
     def multiply_mat_with_vec(mat: 'Mat4', vec: 'Vec4') -> 'Vec4':
@@ -19,6 +22,33 @@ class Vec4(Mat):
             return Vec4(self.x * other.x, self.y * other.y, self.z * other.z, self.v * other.v)
         elif isinstance(other, Mat4):
             return self.multiply_mat_with_vec(other, self)
+
+    # substraction of points creates a vector
+    def __sub__(self, other: 'Vec4'):
+        return Vec4(self.x - other.x, self.y - other.y, self.z - other.z, 0)
+
+    def __add__(self, other: 'Vec4'):
+        # min here is to prevent value of v to be 2 when adding two points for computing centroids
+        return Vec4(self.x + other.x, self.y + other.y, self.z + other.z, min(self.v + other.v, 1))
+
+    def __truediv__(self, divisor: float):
+        assert divisor != 0
+        return Vec4(self.x / divisor, self.y / divisor, self.z / divisor, self.v)
+
+    def cross(self, other: 'Vec4'):
+        cx = (self.y * other.z) - (self.z * other.y)
+        cy = (self.z * other.x) - (self.x * other.z)
+        cz = (self.x * other.y) - (self.y * other.x)
+        return Vec4(cx, cy, cz, 0)
+
+    def dot(self, other: 'Vec4'):
+        return (self.x * other.x) + (self.y * other.y) + (self.z * other.z)
+
+    # normalizes vector, vector has v == 0
+    def normalize(self):
+        assert self.v == 0
+        norm = sqrt((self.x ** 2) + (self.y ** 2) + (self.z ** 2))
+        return self / norm
 
     def __str__(self):
         # better formatting for debugging
@@ -45,7 +75,7 @@ class Mat4(Mat):
 
 
 class Triangle:
-    def __init__(self, vertex1, vertex2, vertex3):
-        self.vertex1 = vertex1
-        self.vertex2 = vertex2
-        self.vertex3 = vertex3
+    def __init__(self, vertex1: int, vertex2: int, vertex3: int):
+        self.vertex1: int = vertex1
+        self.vertex2: int = vertex2
+        self.vertex3: int = vertex3

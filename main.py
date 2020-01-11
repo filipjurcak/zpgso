@@ -9,8 +9,7 @@ class Main:
     def __init__(self):
         self.width = 1000
         self.height = 800
-        self.scale_image = 200
-        self.lines_ids = []
+        self.polygon_ids = []
         self.indexed_face = IndexedFace()
         self.tk = Tk()
         self.tk.title("ZPGSO CG")
@@ -32,6 +31,21 @@ class Main:
         self.rotate_z_entry.place(x=850, y=300)
         self.scale_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='0.0'))
         self.scale_entry.place(x=825, y=375)
+        self.light_direction_x_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='0.0'))
+        self.light_direction_x_entry.place(x=850, y=450)
+        self.light_direction_y_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='-5'))
+        self.light_direction_y_entry.place(x=850, y=475)
+        self.light_direction_z_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='-10'))
+        self.light_direction_z_entry.place(x=850, y=500)
+
+        self.light_vector = Vec4(0, 5, -10, 0).normalize()
+        self.shininess_constant = 200
+        self.k_a = 1.0
+        self.i_a = 0.2
+        self.k_d = 1.0
+        self.k_s = 1.0
+        self.camera = Vec4(0, 0, -10, 1)
+        self.base_color = (0, 60, 255)
 
         rotation_z = Mat4(
             [
@@ -41,17 +55,21 @@ class Main:
                 [0, 0, 0, 1]
             ]
         )
-        scaling1 = Mat4([[-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
-        translation = Mat4([[1, 0, 0, 2], [0, 1, 0, 2], [0, 0, 1, 2], [0, 0, 0, 1]])
-        scaling2 = Mat4(
+        scaling = Mat4(
             [
-                [self.scale_image, 0, 0, 0],
-                [0, self.scale_image, 0, 0],
-                [0, 0, self.scale_image, 0],
+                [-self.height / 4, 0, 0, 0],
+                [0, self.height / 4, 0, 0],
+                [0, 0, self.height / 4, 0],
                 [0, 0, 0, 1]
             ]
         )
-        self.projection_matrix = scaling2 * translation * scaling1 * rotation_z
+        translation = Mat4([
+            [1, 0, 0, self.height / 2],
+            [0, 1, 0, self.height / 2],
+            [0, 0, 1, self.height / 2],
+            [0, 0, 0, 1]
+        ])
+        self.projection_matrix = translation * scaling * rotation_z
         self.original_model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         self.model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
@@ -77,22 +95,42 @@ class Main:
                         self.draw_triangle(triangle)
 
     def draw_triangle(self, triangle: Triangle):
-        vec1 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex1 - 1]
-        vec2 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex2 - 1]
-        vec3 = self.projection_matrix * self.model_matrix * self.indexed_face.vertices[triangle.vertex3 - 1]
-        line_ids = [
-            self.canvas.create_line(vec1.x, vec1.y, vec2.x, vec2.y),
-            self.canvas.create_line(vec1.x, vec1.y, vec3.x, vec3.y),
-            self.canvas.create_line(vec2.x, vec2.y, vec3.x, vec3.y)
-        ]
-        for line in line_ids:
-            self.canvas.tag_lower(line)  # because later drawn objects get higher priority and then collide with sidebar
-            self.lines_ids.append(line)
+        vec1 = self.model_matrix * self.indexed_face.vertices[triangle.vertex1 - 1]
+        vec2 = self.model_matrix * self.indexed_face.vertices[triangle.vertex2 - 1]
+        vec3 = self.model_matrix * self.indexed_face.vertices[triangle.vertex3 - 1]
+
+        v0: Vec4 = vec2 - vec1
+        v1: Vec4 = vec3 - vec2
+        normal = v0.cross(v1).normalize()
+        centroid = (vec1 + vec2 + vec3) / 3
+
+        view_vector = (self.camera - centroid).normalize()
+
+        if view_vector.dot(normal) <= 0:
+            return
+
+        half_vector = (view_vector + self.light_vector).normalize()
+
+        i_d = normal.dot(self.light_vector)
+        i_s = (half_vector.dot(normal)) ** self.shininess_constant
+
+        blinn_phong = (self.k_a * self.i_a) + (self.k_d * i_d) + (self.k_s * i_s)
+        computed_color = tuple(map(lambda x: max(0, min(255, int(x * blinn_phong))), self.base_color))
+        # gets color into hex string for tkinter color
+        color = "#%02x%02x%02x" % computed_color
+
+        vec1 = self.projection_matrix * vec1
+        vec2 = self.projection_matrix * vec2
+        vec3 = self.projection_matrix * vec3
+
+        triangle_id = self.canvas.create_polygon(vec1.x, vec1.y, vec2.x, vec2.y, vec3.x, vec3.y, fill=color)
+        self.canvas.tag_lower(triangle_id)  # later drawn objects get higher priority and then collide with sidebar
+        self.polygon_ids.append(triangle_id)
 
     def redraw(self):
-        for line_id in self.lines_ids:
-            self.canvas.delete(line_id)
-        self.lines_ids = []
+        for polygon_id in self.polygon_ids:
+            self.canvas.delete(polygon_id)
+        self.polygon_ids = []
         for triangle in self.indexed_face.vertex_indices:
             self.draw_triangle(triangle)
 
@@ -136,6 +174,13 @@ class Main:
         self.model_matrix = scaling_matrix * self.model_matrix
         self.redraw()
 
+    def set_light_direction(self):
+        light_direction_x = float(self.light_direction_x_entry.get())
+        light_direction_y = -float(self.light_direction_y_entry.get())  # this is because tkinter y axis is upside down
+        light_direction_z = float(self.light_direction_z_entry.get())
+        self.light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0).normalize()
+        self.redraw()
+
     def start(self):
         load_button = ttk.Button(self.canvas, text="Load", command=self.load_file)
         load_button.place(x=825, y=25)
@@ -170,8 +215,20 @@ class Main:
         scale_button = ttk.Button(self.canvas, text="Scale", command=self.add_scale)
         scale_button.place(x=825, y=400)
 
+        light_direction_x_label = Label(self.canvas, text="X:")
+        light_direction_x_label.place(x=825, y=450)
+
+        light_direction_y_label = Label(self.canvas, text="Y:")
+        light_direction_y_label.place(x=825, y=475)
+
+        light_direction_z_label = Label(self.canvas, text="Z:")
+        light_direction_z_label.place(x=825, y=500)
+
+        light_direction_button = ttk.Button(self.canvas, text="Set Light Direction", command=self.set_light_direction)
+        light_direction_button.place(x=825, y=525)
+
         quit_button = ttk.Button(self.canvas, text="Quit", command=quit)
-        quit_button.place(x=825, y=450)
+        quit_button.place(x=825, y=575)
 
         self.tk.mainloop()
 

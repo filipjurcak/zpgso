@@ -1,4 +1,4 @@
-from data_types import Vec4
+from data_types import Vec4, Triangle
 
 
 class IndexedFace:
@@ -9,7 +9,7 @@ class IndexedFace:
     def add_vertex(self, vertex: Vec4):
         self.vertices.append(vertex)
 
-    def add_vertex_index(self, vertex_index):
+    def add_vertex_index(self, vertex_index: Triangle):
         self.vertex_indices.append(vertex_index)
 
     def reset(self):
