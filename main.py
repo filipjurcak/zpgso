@@ -41,10 +41,10 @@ class Main:
         self.light_vector = Vec4(0, 5, -10, 0).normalize()
         self.view_vector = Vec4(0, 0, -1, 0).normalize()
         self.shininess_constant = 200
-        self.k_a = 1.0
+        self.k_a = 0.8
         self.i_a = 0.2
-        self.k_d = 1.0
-        self.k_s = 1.0
+        self.k_d = 0.8
+        self.k_s = 0.5
         self.base_color = (0, 60, 255)
         rotation_z = Mat4(
             [
