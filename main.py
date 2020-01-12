@@ -29,7 +29,7 @@ class Main:
         self.rotate_y_entry.place(x=850, y=275)
         self.rotate_z_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='0.0'))
         self.rotate_z_entry.place(x=850, y=300)
-        self.scale_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='0.0'))
+        self.scale_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='1.0'))
         self.scale_entry.place(x=825, y=375)
         self.light_direction_x_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='0.0'))
         self.light_direction_x_entry.place(x=850, y=450)
@@ -39,14 +39,13 @@ class Main:
         self.light_direction_z_entry.place(x=850, y=500)
 
         self.light_vector = Vec4(0, 5, -10, 0).normalize()
+        self.view_vector = Vec4(0, 0, -1, 0).normalize()
         self.shininess_constant = 200
         self.k_a = 1.0
         self.i_a = 0.2
         self.k_d = 1.0
         self.k_s = 1.0
-        self.camera = Vec4(0, 0, -10, 1)
         self.base_color = (0, 60, 255)
-
         rotation_z = Mat4(
             [
                 [-1, 0, 0, 0],
@@ -102,14 +101,11 @@ class Main:
         v0: Vec4 = vec2 - vec1
         v1: Vec4 = vec3 - vec2
         normal = v0.cross(v1).normalize()
-        centroid = (vec1 + vec2 + vec3) / 3
 
-        view_vector = (self.camera - centroid).normalize()
-
-        if view_vector.dot(normal) <= 0:
+        if self.view_vector.dot(normal) <= 0:
             return
 
-        half_vector = (view_vector + self.light_vector).normalize()
+        half_vector = (self.view_vector + self.light_vector).normalize()
 
         i_d = normal.dot(self.light_vector)
         i_s = (half_vector.dot(normal)) ** self.shininess_constant
@@ -178,8 +174,10 @@ class Main:
         light_direction_x = float(self.light_direction_x_entry.get())
         light_direction_y = -float(self.light_direction_y_entry.get())  # this is because tkinter y axis is upside down
         light_direction_z = float(self.light_direction_z_entry.get())
-        self.light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0).normalize()
-        self.redraw()
+        # check so light vector + view vector is not 0 vector
+        if light_direction_x != 0 or light_direction_y != 0 or light_direction_z != 1:
+            self.light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0).normalize()
+            self.redraw()
 
     def start(self):
         load_button = ttk.Button(self.canvas, text="Load", command=self.load_file)
