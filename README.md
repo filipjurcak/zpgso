@@ -4,7 +4,7 @@ This is a simple project for visualizing mesh from Wavefront file (.obj) in Pyth
 What can it do:
 - [x] Load and correctly visualize mesh
 - [x] Supports transformations (scaling, translation, rotation)
-- [ ] Blinn-Phong Lightning Model
+- [x] Blinn-Phong Lightning Model
  
 
 
