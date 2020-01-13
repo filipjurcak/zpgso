@@ -35,6 +35,12 @@ class Vec4(Mat):
         assert divisor != 0
         return Vec4(self.x / divisor, self.y / divisor, self.z / divisor, self.v)
 
+    def __ne__(self, other: 'Vec4'):
+        return not self == other
+
+    def __eq__(self, other: 'Vec4'):
+        return self.x == other.x and self.y == other.y and self.z == other.z and self.v == other.v
+
     def cross(self, other: 'Vec4'):
         cx = (self.y * other.z) - (self.z * other.y)
         cy = (self.z * other.x) - (self.x * other.z)
@@ -48,6 +54,8 @@ class Vec4(Mat):
     def normalize(self):
         assert self.v == 0
         norm = sqrt((self.x ** 2) + (self.y ** 2) + (self.z ** 2))
+        if norm == 0:
+            return self
         return self / norm
 
     def __str__(self):

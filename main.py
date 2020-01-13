@@ -185,11 +185,8 @@ class Main:
         light_direction_x = -float(self.light_direction_x_entry.get())
         light_direction_y = -float(self.light_direction_y_entry.get())
         light_direction_z = -float(self.light_direction_z_entry.get())
-        new_light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0)
-        # check so light vector - view vector is not 0 vector
-        if new_light_vector - self.view_vector != Vec4(0, 0, 0, 0):
-            self.light_vector = new_light_vector.normalize()
-            self.redraw()
+        self.light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0).normalize()
+        self.redraw()
 
     def start(self):
         load_button = ttk.Button(self.canvas, text="Load", command=self.load_file)
