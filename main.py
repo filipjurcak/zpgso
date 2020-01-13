@@ -38,14 +38,15 @@ class Main:
         self.light_direction_z_entry = Entry(self.canvas, width=10, bd=0, textvariable=StringVar(self.tk, value='-10'))
         self.light_direction_z_entry.place(x=850, y=500)
 
-        self.light_vector = Vec4(0, 5, -10, 0).normalize()
-        self.view_vector = Vec4(0, 0, -1, 0).normalize()
+        self.light_vector = Vec4(0, 5, 10, 0).normalize()
+        self.view_vector = Vec4(0, 0, 1, 0)
         self.shininess_constant = 200
         self.k_a = 0.8
         self.i_a = 0.2
         self.k_d = 0.8
         self.k_s = 0.5
         self.base_color = (0, 60, 255)
+
         rotation_z = Mat4(
             [
                 [-1, 0, 0, 0],
@@ -54,9 +55,17 @@ class Main:
                 [0, 0, 0, 1]
             ]
         )
+        rotation_y = Mat4(
+            [
+                [-1, 0, 0, 0],
+                [0, 1, 0, 0],
+                [0, 0, -1, 0],
+                [0, 0, 0, 1]
+            ]
+        )
         scaling = Mat4(
             [
-                [-self.height / 4, 0, 0, 0],
+                [self.height / 4, 0, 0, 0],
                 [0, self.height / 4, 0, 0],
                 [0, 0, self.height / 4, 0],
                 [0, 0, 0, 1]
@@ -68,7 +77,9 @@ class Main:
             [0, 0, 1, self.height / 2],
             [0, 0, 0, 1]
         ])
-        self.projection_matrix = translation * scaling * rotation_z
+
+        self.projection_matrix = translation * scaling
+        self.view_matrix = rotation_y * rotation_z
         self.original_model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
         self.model_matrix = Mat4([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]])
 
@@ -115,9 +126,9 @@ class Main:
         # gets color into hex string for tkinter color
         color = "#%02x%02x%02x" % computed_color
 
-        vec1 = self.projection_matrix * vec1
-        vec2 = self.projection_matrix * vec2
-        vec3 = self.projection_matrix * vec3
+        vec1 = self.projection_matrix * self.view_matrix * vec1
+        vec2 = self.projection_matrix * self.view_matrix * vec2
+        vec3 = self.projection_matrix * self.view_matrix * vec3
 
         triangle_id = self.canvas.create_polygon(vec1.x, vec1.y, vec2.x, vec2.y, vec3.x, vec3.y, fill=color)
         self.canvas.tag_lower(triangle_id)  # later drawn objects get higher priority and then collide with sidebar
@@ -136,7 +147,7 @@ class Main:
 
     def add_translate(self):
         translate_x = float(self.translate_x_entry.get())
-        translate_y = -float(self.translate_y_entry.get())  # this is because tkinter y axis is upside down
+        translate_y = float(self.translate_y_entry.get())
         translate_z = float(self.translate_z_entry.get())
         translate_matrix = Mat4([[1, 0, 0, translate_x], [0, 1, 0, translate_y], [0, 0, 1, translate_z], [0, 0, 0, 1]])
         self.model_matrix = translate_matrix * self.model_matrix
@@ -171,12 +182,13 @@ class Main:
         self.redraw()
 
     def set_light_direction(self):
-        light_direction_x = float(self.light_direction_x_entry.get())
-        light_direction_y = -float(self.light_direction_y_entry.get())  # this is because tkinter y axis is upside down
-        light_direction_z = float(self.light_direction_z_entry.get())
-        # check so light vector + view vector is not 0 vector
-        if light_direction_x != 0 or light_direction_y != 0 or light_direction_z != 1:
-            self.light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0).normalize()
+        light_direction_x = -float(self.light_direction_x_entry.get())
+        light_direction_y = -float(self.light_direction_y_entry.get())
+        light_direction_z = -float(self.light_direction_z_entry.get())
+        new_light_vector = Vec4(light_direction_x, light_direction_y, light_direction_z, 0)
+        # check so light vector - view vector is not 0 vector
+        if new_light_vector - self.view_vector != Vec4(0, 0, 0, 0):
+            self.light_vector = new_light_vector.normalize()
             self.redraw()
 
     def start(self):
