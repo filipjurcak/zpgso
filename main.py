@@ -39,7 +39,7 @@ class Main:
         self.light_direction_z_entry.place(x=850, y=500)
 
         self.light_vector = Vec4(0, 5, 10, 0).normalize()
-        self.view_vector = Vec4(0, 0, 1, 0)
+        self.view_vector = Vec4(0, 0, -1, 0)
         self.shininess_constant = 200
         self.k_a = 0.8
         self.i_a = 0.2
@@ -113,7 +113,7 @@ class Main:
         v1: Vec4 = vec3 - vec2
         normal = v0.cross(v1).normalize()
 
-        if self.view_vector.dot(normal) <= 0:
+        if self.view_vector.dot(normal) > 0:
             return
 
         half_vector = (self.view_vector + self.light_vector).normalize()
